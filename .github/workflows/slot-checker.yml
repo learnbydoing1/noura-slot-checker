@@ -2,8 +2,8 @@ name: Noura Slot Checker
 
 on:
   schedule:
-    # Run every 10 minutes (UTC)
-    - cron: '*/10 * * * *'
+    # Run every 5 minutes (UTC)
+    - cron: '*/5 * * * *'
   workflow_dispatch: # Allow manual run
 
 jobs:
