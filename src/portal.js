@@ -123,9 +123,27 @@ async function switchToEnglish(page, config) {
 async function navigateToBookingPage(page, config) {
   logger.info('Navigating to Book Final Road Test page...');
 
-  await new Promise((r) => setTimeout(r, 1000));
+  await page.waitForLoadState('networkidle').catch(() => {});
+  await new Promise((r) => setTimeout(r, 3000));
 
-  // Try Playwright role-based locator first (flexible text match)
+  const clickedViaEval = await page.evaluate(() => {
+    const links = document.querySelectorAll('a');
+    for (const a of links) {
+      const text = (a.textContent || '').trim().replace(/\s+/g, ' ');
+      if (/book\s*final\s*road\s*test/i.test(text)) {
+        a.click();
+        return true;
+      }
+    }
+    return false;
+  });
+  if (clickedViaEval) {
+    await page.waitForLoadState('networkidle');
+    await new Promise((r) => setTimeout(r, 2000));
+    logger.info('Reached booking page via evaluate');
+    return true;
+  }
+
   try {
     const bookingLink = page.getByRole('link', { name: /book\s*final\s*road\s*test/i });
     if ((await bookingLink.count()) > 0) {
@@ -179,7 +197,6 @@ async function navigateToBookingPage(page, config) {
     }
   }
 
-  // Last resort: try 4th link in any nav-like container
   const fourthLink = page.locator('nav a, aside a, .sidebar a, .menu a, ul a').nth(3);
   if ((await fourthLink.count()) > 0) {
     try {
@@ -191,6 +208,26 @@ async function navigateToBookingPage(page, config) {
     } catch (e) {
       logger.debug('4th item click failed:', e.message);
     }
+  }
+
+  const directUrl = await page.evaluate(() => {
+    const links = document.querySelectorAll('a[href]');
+    for (const a of links) {
+      const text = (a.textContent || '').trim();
+      if (/book\s*final\s*road|road\s*test|final\s*test/i.test(text)) {
+        const href = a.getAttribute('href') || '';
+        if (href.startsWith('/') || href.includes('nouradc')) return href;
+      }
+    }
+    return null;
+  });
+  if (directUrl) {
+    const baseUrl = (config && config.baseUrl) || 'https://nouradc.com/trainee';
+    const fullUrl = directUrl.startsWith('http') ? directUrl : new URL(directUrl, baseUrl).href;
+    await page.goto(fullUrl, { waitUntil: 'networkidle' });
+    await new Promise((r) => setTimeout(r, 2000));
+    logger.info('Reached booking page via direct URL');
+    return true;
   }
 
   throw new Error(
