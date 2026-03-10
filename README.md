@@ -160,9 +160,25 @@ Add:
 
 ### 3. Run
 
-The workflow runs **every 10 minutes** and performs one check per run. Email notifications work; desktop notifications are skipped on the server.
+The workflow runs on **push** and can run on **schedule** (every 5 min). GitHub’s built-in schedule can be unreliable; if it doesn’t fire, use the external cron below.
 
 To run manually: **Actions → Noura Slot Checker → Run workflow**.
+
+### 4. Reliable every-5-min runs (cron-job.org)
+
+If GitHub’s schedule doesn’t run, use [cron-job.org](https://cron-job.org) (free) to trigger the workflow every 5 minutes:
+
+1. **Create a GitHub PAT**: Settings → Developer settings → Personal access tokens → Generate (classic). Scopes: `workflow`, `repo`.
+2. **Sign up** at [cron-job.org](https://cron-job.org).
+3. **Create cron job**:
+   - **URL**: `https://api.github.com/repos/learnbydoing1/noura-slot-checker/actions/workflows/slot-checker.yml/dispatches`
+   - **Method**: POST
+   - **Request headers**:
+     - `Authorization: token YOUR_PAT`
+     - `Accept: application/vnd.github.v3+json`
+     - `Content-Type: application/json`
+   - **Request body**: `{"ref":"main"}`
+   - **Schedule**: Every 5 minutes
 
 ### Alternative: Docker (Railway, Fly.io, etc.)
 
