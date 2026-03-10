@@ -2,9 +2,9 @@ name: Noura Slot Checker
 
 on:
   schedule:
-    # Run every 5 minutes (UTC)
-    - cron: '*/5 * * * *'
-  workflow_dispatch: # Allow manual run
+    # Every 5 min (avoid :00 - GitHub often delays top of hour)
+    - cron: '2,7,12,17,22,27,32,37,42,47,52,57 * * * *'
+  workflow_dispatch:
 
 jobs:
   check:
