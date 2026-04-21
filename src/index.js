@@ -15,7 +15,7 @@ const { chromium } = require('playwright');
 const { config, init } = require('./config');
 const logger = require('./logger');
 const { login, saveAuthState, loadAuthState } = require('./auth');
-const { switchToEnglish, navigateToBookingPage, dismissOverlay, isTrainingIncomplete } = require('./portal');
+const { switchToEnglish, navigateToBookingPage, dismissOverlay, isTrainingIncomplete, isOnBookingPage } = require('./portal');
 const { runCheckLoop } = require('./slotChecker');
 
 const isDebug = process.argv.includes('--debug');
@@ -86,6 +86,13 @@ async function main() {
 
     if (runOnce) {
       const { hasNoSlotsMessage } = require('./portal');
+
+      if (!(await isOnBookingPage(page))) {
+        logger.warn('Not on the booking page after navigation — skipping check');
+        await browser.close();
+        return;
+      }
+
       const noSlots = await hasNoSlotsMessage(page);
       if (!noSlots) {
         logger.info('Slots may be available!');

@@ -3,7 +3,7 @@
  */
 
 const logger = require('./logger');
-const { hasNoSlotsMessage, switchToEnglish, navigateToBookingPage, isTrainingIncomplete } = require('./portal');
+const { hasNoSlotsMessage, switchToEnglish, navigateToBookingPage, isTrainingIncomplete, isOnBookingPage } = require('./portal');
 const { notify } = require('./notifier');
 const { login, saveAuthState } = require('./auth');
 
@@ -41,6 +41,11 @@ async function runCheckLoop(page, context, config) {
     try {
       await page.reload({ waitUntil: 'networkidle', timeout: config.timeout });
       await new Promise((r) => setTimeout(r, 2000));
+
+      if (!(await isOnBookingPage(page))) {
+        logger.warn('Not on the booking page after reload — skipping this check');
+        return false;
+      }
 
       const noSlots = await hasNoSlotsMessage(page);
       if (!noSlots) {

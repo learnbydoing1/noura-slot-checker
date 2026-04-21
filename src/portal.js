@@ -406,24 +406,34 @@ async function acceptTermsAndConditions(page) {
 }
 
 async function isTrainingIncomplete(page) {
-  return page.evaluate(() => {
-    const body = document.body.innerText || '';
-    const hasTrainingPath = /training\s*path/i.test(body);
-    const hasDashboard = /welcome\s.*\sto\s/i.test(body) || /your\s*training\s*progress/i.test(body);
-    if (!hasTrainingPath || !hasDashboard) return false;
+  await new Promise((r) => setTimeout(r, 3000));
+  await page.waitForLoadState('networkidle').catch(() => {});
 
-    const progressSection = body.match(/your\s*training\s*progress[\s\S]{0,100}?(\d+)\s*%/i)
-      || body.match(/progress[\s\S]{0,100}?(\d+)\s*%/i);
-    if (progressSection) {
-      const pct = parseInt(progressSection[1], 10);
-      return pct < 100;
-    }
-
+  const hasBookingLink = await page.evaluate(() => {
     const links = document.querySelectorAll('a');
     for (const a of links) {
-      if (/book\s*final\s*road\s*test/i.test(a.textContent || '')) return false;
+      if (/book\s*final\s*road\s*test/i.test((a.textContent || '').trim().replace(/\s+/g, ' '))) {
+        return true;
+      }
     }
-    return true;
+    return false;
+  });
+
+  if (hasBookingLink) {
+    logger.debug('Book Final Road Test link found in sidebar — training appears complete');
+    return false;
+  }
+
+  logger.info('Book Final Road Test link NOT found in sidebar — training may be incomplete');
+  return true;
+}
+
+async function isOnBookingPage(page) {
+  return page.evaluate(() => {
+    const msgShow = document.querySelector('div.msg-show');
+    if (msgShow) return true;
+    const body = (document.body.innerText || '').toLowerCase();
+    return body.includes('book final road test') || body.includes('final road test');
   });
 }
 
@@ -457,6 +467,7 @@ module.exports = {
   acceptTermsAndConditions,
   isTermsPopupVisible,
   isTrainingIncomplete,
+  isOnBookingPage,
   getNoSlotsSelector,
   hasNoSlotsMessage,
 };
