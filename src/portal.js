@@ -408,14 +408,22 @@ async function acceptTermsAndConditions(page) {
 async function isTrainingIncomplete(page) {
   return page.evaluate(() => {
     const body = document.body.innerText || '';
-    const progressMatch = body.match(/(\d+)\s*%/);
-    if (!progressMatch) return false;
-    const pct = parseInt(progressMatch[1], 10);
-    if (pct >= 100) return false;
-
     const hasTrainingPath = /training\s*path/i.test(body);
     const hasDashboard = /welcome\s.*\sto\s/i.test(body) || /your\s*training\s*progress/i.test(body);
-    return hasTrainingPath && hasDashboard;
+    if (!hasTrainingPath || !hasDashboard) return false;
+
+    const progressSection = body.match(/your\s*training\s*progress[\s\S]{0,100}?(\d+)\s*%/i)
+      || body.match(/progress[\s\S]{0,100}?(\d+)\s*%/i);
+    if (progressSection) {
+      const pct = parseInt(progressSection[1], 10);
+      return pct < 100;
+    }
+
+    const links = document.querySelectorAll('a');
+    for (const a of links) {
+      if (/book\s*final\s*road\s*test/i.test(a.textContent || '')) return false;
+    }
+    return true;
   });
 }
 
